@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  app-node:
+    build: 
+      context: ./app-node
+    container_name: app-node
+    image: sholiveira/dev-fullcycle-docker-node
+    ports:
+      - "4000:4000"
+    entrypoint: dockerize -wait tcp://database:3306 -timeout 20s npm start
+    networks:
+      - node-proxy-net
+    depends_on:
+      - database
+
+  app-server:
+    build: 
+      context: ./app-server
+    container_name: app-server
+    image: sholiveira/dev-fullcycle-docker-nginx
+    ports:
+      - "8080:80"
+    networks:
+      - node-proxy-net
+    depends_on:
+      - app-node
+
+  database:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: database
+    volumes:
+      - ./database/init:/docker-entrypoint-initdb.d
+    environment:
+      - MYSQL_DATABASE=appdb
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - node-proxy-net
+    ports:
+      - "3306:3306"
+    expose:
+    - 3306
+
+networks:
+  node-proxy-net:
+    driver: bridge
